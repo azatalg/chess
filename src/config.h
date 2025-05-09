@@ -1,9 +1,10 @@
+#pragma once
 // data types
 typedef unsigned long long u64;
 typedef unsigned int u32;
 typedef int i32;
 typedef unsigned short u8;
-
+typedef short i8;
 // enums
 enum class Piece { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
 enum class Color { WHITE, BLACK };

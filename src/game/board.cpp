@@ -1,5 +1,6 @@
 #include "./board.h"
 #include <cmath>
+#include <iostream>
 Piece Board::get_type(u8 pos, Color color) {
 	for(u8 i=0; i<6; i++) {
 		if(pieces[i][U8(color)] & (1<<pos)) {
@@ -47,9 +48,6 @@ inline bool checkKnight(u8 from, u8 to) {
 
 bool Board::is_king_attacked(u64 b, Color color, Color turn) {
 	u8 king = king_position[U64(color)];
-	if(U64(color) != U64(turn)) {
-		return true;
-	}
 
 	const i8* shifts = queen_shifts;
 
@@ -62,13 +60,16 @@ bool Board::is_king_attacked(u64 b, Color color, Color turn) {
 			if((i==0 || i == 1) && !checkColumn(king, pos)) continue;
 			if((i==2 || i == 2) && !checkRow(king, pos)) continue;
 
-			if(b & (1<<pos)) {
-				Piece type = get_type(pos, color);
+			if(board[U8(opposite(color))] & (1<<pos)) {
+				Piece type = get_type(pos, opposite(color));
 				if(j == 0 && type == Piece::KING) return true;
 				if(j == 0 && (i == 2 || i == 3) && type == Piece::PAWN) return true;
 				if(type == Piece::QUEEN || (type == Piece::BISHOP && (i==2 || i==3)) || (type == Piece::ROOK && (i==0 || i == 1))) {
 					return true;
 				}
+				break; // stop checking the line if piece was found
+			}
+			if(b & (1<<pos)) {
 				break; // stop checking the line if piece was found
 			}
 		}
@@ -80,6 +81,7 @@ std::vector<Moves> get_rook_moves(u8 from, Color color, Board& board, Piece piec
 	vector<Moves> moves;
 	u64 b = board.board[2];
 	u64 friendB = board.board[U8(color)];
+	u64 enemyB  = board.board[U8(opposite(color))];
 	const i8* shifts = rook_shifts;
 	for(i8 i = 0; i<4; i++) {
 		for(i8 j = 0; j<7; j++) {
@@ -88,7 +90,7 @@ std::vector<Moves> get_rook_moves(u8 from, Color color, Board& board, Piece piec
 			if((i==0 || i == 1) && !checkColumn(from, to)) break;
 			if((i==2 || i == 3) && !checkRow(from, to)) break;
 			if(!checkIfFree(friendB, to)) break;
-			if(board.is_king_attacked((b^from)|(1<<to), color, turn)) break;
+			if(!board.is_king_attacked((b^(1<<from))|(1<<to), color, turn)) break;
 			moves.push_back(Moves(from, U8(to), U8(0), U8(0), piece));
 			if(b & U64(1<<to)) break;
 		}
@@ -108,7 +110,7 @@ std::vector<Moves> get_bishop_moves(u8 from, Color color, Board& board, Piece pi
 			if((i==0 || i == 1) && !checkDiagRight(from, to)) break;
 			if((i==2 || i == 3) && !checkDiagLeft(from, to)) break;
 			if(!checkIfFree(friendB, to)) break;
-			if(board.is_king_attacked((b^from)|(1<<to), color, turn)) break;
+			if(board.is_king_attacked((b^(1<<from))|(1<<to), color, turn)) break;
 			moves.push_back(Moves(from, U8(to), U8(0), U8(0), piece));
 			if(b & U64(1<<to)) break;
 		}
@@ -133,7 +135,7 @@ std::vector<Moves> get_knight_moves(u8 from, Color color, Board& board, Piece pi
 		if(to < 0 || to > 63) continue;
 		if(!checkKnight(from, to)) continue;
 		if(!checkIfFree(friendB, to)) continue;
-		if(board.is_king_attacked((b^from)|(1<<to), color, turn)) break;
+		if(board.is_king_attacked((b^(1<<from))|(1<<to), color, turn)) break;
 		moves.push_back(Moves(from, U8(to), U8(0), U8(0), Piece::KNIGHT));
 	}
 	return moves;
@@ -214,20 +216,20 @@ std::vector<Moves> get_king_moves(u8 from, Color color, Board& board, Piece piec
 
 std::vector<Moves> get_pawn_moves(u8 from, Color color, Board& board, Piece piece, Color turn) {
     std::vector<Moves> moves;
-    int idx     = U8(color);            
+    u8 idx    = U8(color);            
     u64 b     = board.board[2];
     u64 friendB = board.board[U8(color)];
     u64 enemyB  = board.board[U8(color) ^ 1];
-
     int to = from + pawn_shifts[U8(color)][0];
-    if (to >= 0 && to < 64 && !checkColumn(from, to) && !(b & (1ULL << to)) && !board.is_king_attacked(b|(1<<to), color, turn)) {
+	std::cout<<checkColumn(from, to)<<' '<<to<<' '<<from<<' '<<!(b & (1ULL << to))<<' '<<board.is_king_attacked((b^(1<<from))|(1<<to), color, turn)<<'\n';
+    if (to >= 0 && to < 64 && checkColumn(from, to) && !(b & (1ULL << to)) && !board.is_king_attacked((b^(1<<from))|(1<<to), color, turn)) {
         moves.push_back({from, U8(to), 0, 0, piece});
 
         bool onStart = (color==Color::WHITE && (from>>3)==1)
                          || (color==Color::BLACK && (from>>3)==6);
         if (onStart) {
             int to2 = from + pawn_first_shifts[idx][0];
-            if (to2 >= 0 && to2 < 64 && !checkColumn(from, to2) && !(b & (1ULL << to2)) && !board.is_king_attacked(b|(1<<to), color, turn)) {
+            if (to2 >= 0 && to2 < 64 && !checkColumn(from, to2) && !(b & (1ULL << to2)) && !board.is_king_attacked((b^(1<<from))|(1<<to), color, turn)) {
                 moves.push_back({from, U8(to2), 0, 0, piece});
             }
         }
@@ -290,7 +292,6 @@ std::vector<Moves> Board::get_all_legal_moves(Color color) {
     for (int pi = 0; pi < 6; ++pi) {
         Piece piece = static_cast<Piece>(pi);
         u64 bb = pieces[pi][U8(color)];
-
         while (bb) {
             int from = __builtin_ctzll(bb);
             bb &= bb - 1;

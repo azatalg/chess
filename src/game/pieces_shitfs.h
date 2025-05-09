@@ -1,3 +1,4 @@
+#pragma once
 /* Bit shifts of moves precomputed */
 
 // KNIGHT

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "./moves.h"
 #include "./pieces_shitfs.h"
 #include <vector>
