@@ -1,6 +1,3 @@
-// cosnt 
-constexpr i32 INF = 1e9 + 7;
-
 // data types
 typedef unsigned long long u64;
 typedef unsigned int u32;
@@ -18,3 +15,6 @@ inline Color opposite(Color c){
 // makro
 #define U64(x) static_cast<u64>(x)
 #define U8(x) static_cast<u8>(x)
+
+// const 
+constexpr i32 INF = 1e9 + 7;
