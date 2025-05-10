@@ -3,6 +3,7 @@
 #include "./moves.h"
 #include "./pieces_shitfs.h"
 #include <vector>
+#include <cmath>
 using std::vector;
 
 class Board {
@@ -51,5 +52,22 @@ public:
 	bool is_king_attacked(u64 bo, Color color, Color turn);
 	vector<Moves> get_piece_legal_move(u8 place, Piece type, Color color, bool canCastle);
 	vector<Moves> get_all_legal_moves(Color color);
+	void updateBoard(Moves& move, Color color) {
+		u8 from = move.getStart();
+		u8 to = move.getEnd();
+		u8 fromCastle = move.getStartCast();
+		u8 toCastle = move.getEndCast();
+		Piece piece = move.getPiece();
+		board[U8(color)] ^= 1<<from;
+		board[U8(color)] |= 1<<to;
+		board[2] ^= 1<<from;
+		board[2] |= 1<<to;
+		if(piece == Piece::KING && castle_rights[U8(color)] && std::abs(I8(to)-I8(from)) ==  2) {
+			board[U8(color)] ^= fromCastle;
+			board[U8(color)] |= toCastle;
+			board[2] ^= fromCastle;
+			board[2] |= toCastle;
+		}
+	}
 };
 

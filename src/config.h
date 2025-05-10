@@ -16,6 +16,7 @@ inline Color opposite(Color c){
 // makro
 #define U64(x) static_cast<u64>(x)
 #define U8(x) static_cast<u8>(x)
+#define I8(x) static_cast<i8>(x)
 
 // const 
 constexpr i32 INF = 1e9 + 7;
