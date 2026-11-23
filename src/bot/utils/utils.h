@@ -1,19 +1,27 @@
-#pragma once 
-#include "../config.h"
+#pragma once
 
-namespace Random {
-    u64 seed = 1; 
-    u32 random();
-}
+#include "../../config.h"
+#include <chrono>
+
+namespace chess::ai {
+
+class Random {
+public:
+    explicit Random(u64 seed = 1) : state_(seed) {}
+    u32 next();
+
+private:
+    u64 state_;
+};
 
 class Timer {
-private:
-    u64 T0;
-
 public:
-    const u64 M_TIME = 100'000; // 100 ms
+    using Clock = std::chrono::steady_clock;
+    Timer() : started_(Clock::now()) {}
+    i32 elapsed_milliseconds() const;
 
-    Timer();
-    u64 get_time();
-    inline i32 elapsed_time();
+private:
+    Clock::time_point started_;
 };
+
+} // namespace chess::ai

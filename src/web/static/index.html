@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Chess Engine</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <section id="lobby" class="lobby">
+    <div class="lobby-card">
+      <span class="eyebrow">NEURAL // NETWORK</span>
+      <h1>CHESS<span>_CORE</span></h1>
+      <p class="lead">Wybierz protokół rozgrywki.</p>
+      <div class="mode-grid">
+        <button class="mode-card" id="soloMode"><b>01</b><span>GRA Z BOTEM</span><small>Lokalny silnik taktyczny</small></button>
+        <button class="mode-card pink" id="createMode"><b>02</b><span>UTWÓRZ POKÓJ</span><small>Otrzymasz kod dla rywala</small></button>
+        <button class="mode-card violet" id="joinMode"><b>03</b><span>DOŁĄCZ ONLINE</span><small>Kod pokoju + hasło</small></button>
+      </div>
+      <form id="roomForm" class="room-form hidden">
+        <div id="roomBrowser" class="room-browser hidden">
+          <div class="browser-head"><span>DOSTĘPNE POKOJE</span><button type="button" id="refreshRooms" class="icon-button" aria-label="Odśwież pokoje">↻</button></div>
+          <div id="roomList" class="room-list"><p>Wyszukiwanie pokojów…</p></div>
+        </div>
+        <div id="codeField" class="field hidden"><label for="roomCode">KOD POKOJU</label><input id="roomCode" maxlength="6" autocomplete="off" placeholder="NP. 7XK9Q2"></div>
+        <div class="field"><label for="roomPassword">HASŁO</label><input id="roomPassword" type="password" maxlength="64" autocomplete="current-password" placeholder="HASŁO POKOJU"></div>
+        <button type="submit" id="roomSubmit">POŁĄCZ</button>
+        <button type="button" class="ghost" id="roomCancel">WRÓĆ</button>
+        <p id="lobbyError" class="error"></p>
+      </form>
+    </div>
+  </section>
+  <main>
+    <section class="shell">
+      <header>
+        <div class="brand"><span class="eyebrow">NEURAL // ARENA</span><h1>CHESS<span>_CORE</span></h1></div>
+        <div class="session"><span id="roomBadge" class="room-badge hidden"></span><div id="status">Ładowanie…</div></div>
+      </header>
+      <div class="board-frame"><div id="board" aria-label="Szachownica"></div></div>
+      <section class="controls">
+        <label><span>OPONENT</span><select id="bot"><option value="black">BOT // CZARNE</option><option value="white">BOT // BIAŁE</option><option value="none">LOCAL // 2 GRACZY</option><option value="both">BOT // AUTOPLAY</option></select></label>
+        <label><span>THINK TIME</span><select id="time"><option value="100">100 MS</option><option value="500" selected>500 MS</option><option value="1000">1 SEK</option><option value="3000">3 SEK</option></select></label>
+        <button id="newGame"><span>↻</span> NOWA GRA</button>
+        <button id="flipBoard" class="ghost"><span>⇅</span> OBRÓĆ</button>
+        <button id="exitGame" class="ghost">WYJDŹ</button>
+      </section>
+      <p class="hint"><span>SYS.TIP</span> Przeciągnij figurę albo wybierz pole startowe i docelowe.</p>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

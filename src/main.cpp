@@ -1,10 +1,5 @@
-#include "./game/game.h"
-using namespace std;
+#include "cli/terminal.h"
 
-int main() {
-	Game game;
-	while(game.is_played) {
-		std::vector<Moves> moves = game.getMoves();
-
-	}
+int main(int argc, char** argv) {
+    return chess::cli::run(argc, argv);
 }

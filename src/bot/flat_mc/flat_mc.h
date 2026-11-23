@@ -1,11 +1,15 @@
-#pragma once 
-#include "../bot/bot.h"
-#include "../config.h";
-#include "../../game/board.h"
-#include "../../game/moves.h"
+#pragma once
 
-class Flat_mc : Bot {
+#include "../bot/bot.h"
+
+namespace chess::ai {
+
+class FlatMonteCarlo final : public Bot {
 public:
-    Moves flat_mc();
-    Flat_mc(Board board, Color color);
+    FlatMonteCarlo(const Board& board, Color color) : Bot(board, color) {}
+    Move choose_move(i32 time_budget_ms = 100);
 };
+
+using Flat_mc [[deprecated("Use FlatMonteCarlo")]] = FlatMonteCarlo;
+
+} // namespace chess::ai

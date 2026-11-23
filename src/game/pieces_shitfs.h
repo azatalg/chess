@@ -1,6 +1,8 @@
 #pragma once
 /* Bit shifts of moves precomputed */
 
+namespace chess {
+
 // KNIGHT
 constexpr short knight_shifts[] = { +17, +15, +10, +6, -6, -10, -15, -17 };
 
@@ -44,3 +46,4 @@ constexpr short pawn_shifts[2][3] = {{8, 9, 7}, {-8, -9, -7}}; // 0 - color whit
 // PAWN START
 constexpr short pawn_first_shifts[2][3] = {{16}, {-16}};
 
+} // namespace chess

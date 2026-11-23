@@ -1,22 +1,26 @@
 #pragma once
-// data types
-typedef unsigned long long u64;
-typedef unsigned int u32;
-typedef int i32;
-typedef unsigned short u8;
-typedef short i8;
-// enums
-enum class Piece { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
-enum class Color { WHITE, BLACK };
 
-// methods for enums
-inline Color opposite(Color c){
-    return c == Color::WHITE ? Color::BLACK : Color::WHITE;
+#include <cstddef>
+#include <cstdint>
+
+namespace chess {
+
+using u8 = std::uint8_t;
+using u16 = std::uint16_t;
+using u32 = std::uint32_t;
+using u64 = std::uint64_t;
+using i32 = std::int32_t;
+using i16 = std::int16_t;
+
+enum class Color : u8 { White, Black };
+enum class Piece : u8 { Pawn, Knight, Bishop, Rook, Queen, King, None };
+
+constexpr Color opposite(Color color) {
+    return color == Color::White ? Color::Black : Color::White;
 }
-// makro
-#define U64(x) static_cast<u64>(x)
-#define U8(x) static_cast<u8>(x)
-#define I8(x) static_cast<i8>(x)
+constexpr std::size_t index(Color color) { return static_cast<std::size_t>(color); }
+constexpr std::size_t index(Piece piece) { return static_cast<std::size_t>(piece); }
+constexpr u64 square_bit(u8 square) { return 1ULL << square; }
+constexpr u8 no_square = 64;
 
-// const 
-constexpr i32 INF = 1e9 + 7;
+} // namespace chess

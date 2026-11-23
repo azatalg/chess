@@ -1,43 +1,31 @@
 #pragma once
-#include "./board.h"
+
+#include "board.h"
+#include <EASTL/vector.h>
+
+namespace chess {
+
+enum class GameResult { Ongoing, WhiteWins, BlackWins, Stalemate, FiftyMoveDraw,
+                        RepetitionDraw, InsufficientMaterialDraw };
 
 class Game {
-	Board board;
-	std::vector<Moves> moves;
-	Color curPlayer;
-	bool canCastle[2];
 public:
-	bool is_played;
-	Game() {
-		curPlayer = Color::WHITE;
-		is_played = true;
-	}
+    Game();
 
-	void moveExe(Moves& move) {
-		moves.push_back(move);
-		board.updateBoard(move, curPlayer);
-		curPlayer = opposite(curPlayer);
-	}
+    Board& board() { return board_; }
+    const Board& board() const { return board_; }
+    Color side_to_move() const { return board_.side_to_move(); }
+    bool in_check() const { return board_.in_check(board_.side_to_move()); }
 
-	bool isCheck() {
-		return board.is_king_attacked(board.board[2], curPlayer, curPlayer);	
-	}
-	bool isCheckmate() {
-		if(!isCheck()) return false;
-		vector<Moves> moves = board.get_all_legal_moves(curPlayer);
-		if(moves.size() != 0) return false;
-		is_played = false;
-		return true;
-	}
-	bool isStelmate() {
-		if(isCheck()) return false;
-		vector<Moves> moves = board.get_all_legal_moves(curPlayer);
-		if(moves.size() != 0) return false;
-		is_played = false;
-		return true;
-	}
+    void legal_moves(MoveList& moves) { board_.generate_legal(moves); }
+    void play(Move move);
+    GameResult result();
 
-	vector<Moves> getMoves() {
-		return board.get_all_legal_moves(curPlayer);
-	}
+private:
+    Board board_;
+    eastl::vector<u64> position_history_;
+
+    bool threefold_repetition() const;
 };
+
+} // namespace chess

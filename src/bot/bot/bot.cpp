@@ -1,23 +1,23 @@
-#pragma once
-#include <bits/stdc++.h>
 #include "bot.h"
-#include "utils/utils.cpp"
 
-Bot::Bot(Board board, Color color)
-    :board(board), color(color) {}
+namespace chess::ai {
 
-Color Bot::simulate_till_end() {
-    while(!board_copy.end_game()) { //TODO
-        std::vector<Moves> moves = board_copy.generate_move(color_copy); //TODO
-        const Moves &move = moves[Random::random() % moves.size()];
+Bot::Bot(const Board& board, Color color) : board_(board), color_(color) {}
 
-        board_copy.make_move(move);
-        color_copy = opposite(color_copy);
+int Bot::simulate(Board position, Color perspective, const Timer& timer, i32 deadline_ms) {
+    // The cap prevents pathological random games from running forever.
+    for (int ply = 0; ply < 512; ++ply) {
+        if (timer.elapsed_milliseconds() >= deadline_ms) return 0;
+        MoveList moves;
+        position.generate_legal(moves);
+        if (moves.empty()) {
+            if (!position.in_check(position.side_to_move())) return 0;
+            return position.side_to_move() == perspective ? -1 : 1;
+        }
+        if (position.halfmove_clock() >= 100 || position.insufficient_material()) return 0;
+        position.make_move(moves[random_.next() % moves.size()]);
     }
-
-    return opposite(color_copy); // return winner of the simulate
+    return 0;
 }
 
-void Bot::make_board_copy(){
-    board_copy = board;
-}
+} // namespace chess::ai

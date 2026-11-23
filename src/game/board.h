@@ -1,73 +1,87 @@
 #pragma once
 
-#include "./moves.h"
-#include "./pieces_shitfs.h"
-#include <vector>
-#include <cmath>
-using std::vector;
+#include "move.h"
+#include <EASTL/array.h>
+
+namespace chess {
+
+enum CastlingRight : u8 { white_king = 1, white_queen = 2, black_king = 4, black_queen = 8 };
+
+struct StateInfo {
+    u64 hash = 0;
+    u64 metadata = 0;
+};
+using UndoState = StateInfo;
+static_assert(sizeof(StateInfo) == 16, "StateInfo must remain two machine words");
 
 class Board {
-i8 get_bit(i8 x, i8 y) const {
-	return y*8 + x;
-};
-bool is_blocked(int x, int y, Color color) const {
-	i8 bit = get_bit(x, y);
-	return (board[U64(color)] & (1 << U64(bit))) != 0;
-};
-
 public:
-    u64 board[3];
-	// board[0] → all white pieces
-	// board[1] → all black pieces
-	// board[2] → all pieces (white | black)
-    u64 pieces[6][2];
-	u8 king_position[2];
-	bool castle_rights[2];
-    Board() {
-        /*  WHITE  -------------------------------------------------- */
-        pieces[U64(Piece::PAWN)]   [U64(Color::WHITE)] = 0x000000000000FF00ULL;   // 8‑15
-        pieces[U64(Piece::KNIGHT)] [U64(Color::WHITE)] = 0x0000000000000042ULL;   // b1, g1
-        pieces[U64(Piece::BISHOP)] [U64(Color::WHITE)] = 0x0000000000000024ULL;   // c1, f1
-        pieces[U64(Piece::ROOK)]   [U64(Color::WHITE)] = 0x0000000000000081ULL;   // a1, h1
-        pieces[U64(Piece::QUEEN)]  [U64(Color::WHITE)] = 0x0000000000000008ULL;   // d1
-        pieces[U64(Piece::KING)]   [U64(Color::WHITE)] = 0x0000000000000010ULL;   // e1
+    Board();
+    static Board from_fen(const char* fen);
 
-        /*  BLACK  -------------------------------------------------- */
-        pieces[U64(Piece::PAWN)]   [U64(Color::BLACK)] = 0x00FF000000000000ULL;   // 48‑55
-        pieces[U64(Piece::KNIGHT)] [U64(Color::BLACK)] = 0x4200000000000000ULL;   // b8, g8
-        pieces[U64(Piece::BISHOP)] [U64(Color::BLACK)] = 0x2400000000000000ULL;   // c8, f8
-        pieces[U64(Piece::ROOK)]   [U64(Color::BLACK)] = 0x8100000000000000ULL;   // a8, h8
-        pieces[U64(Piece::QUEEN)]  [U64(Color::BLACK)] = 0x0800000000000000ULL;   // d8
-        pieces[U64(Piece::KING)]   [U64(Color::BLACK)] = 0x1000000000000000ULL;   // e8
-		
-		board[U64(Color::WHITE)] = 0x000000000000FFFFULL;  // white: ranks 1&2
-        board[U64(Color::BLACK)] = 0xFFFF000000000000ULL,  // black: ranks 7&8
-        board[2] = 0xFFFF00000000FFFFULL;				   // all: white + black
-		king_position[U64(Color::WHITE)] = 3;
-		king_position[U64(Color::BLACK)] = 59;
-		castle_rights[U64(Color::WHITE)] = true;
-		castle_rights[U64(Color::BLACK)] = true;
-    }
-	Piece get_type(u8 bit, Color color);
-	bool is_king_attacked(u64 bo, Color color, Color turn);
-	vector<Moves> get_piece_legal_move(u8 place, Piece type, Color color, bool canCastle);
-	vector<Moves> get_all_legal_moves(Color color);
-	void updateBoard(Moves& move, Color color) {
-		u8 from = move.getStart();
-		u8 to = move.getEnd();
-		u8 fromCastle = move.getStartCast();
-		u8 toCastle = move.getEndCast();
-		Piece piece = move.getPiece();
-		board[U8(color)] ^= 1<<from;
-		board[U8(color)] |= 1<<to;
-		board[2] ^= 1<<from;
-		board[2] |= 1<<to;
-		if(piece == Piece::KING && castle_rights[U8(color)] && std::abs(I8(to)-I8(from)) ==  2) {
-			board[U8(color)] ^= fromCastle;
-			board[U8(color)] |= toCastle;
-			board[2] ^= fromCastle;
-			board[2] |= toCastle;
-		}
-	}
+    Color side_to_move() const { return side_to_move_; }
+    u64 occupancy() const { return occupancy_[0] | occupancy_[1]; }
+    u64 occupancy(Color color) const { return occupancy_[index(color)]; }
+    u64 pieces(Color color, Piece piece) const { return pieces_[index(color)][index(piece)]; }
+    u8 en_passant_square() const { return en_passant_; }
+    u8 castling_rights() const { return castling_rights_; }
+    u16 halfmove_clock() const { return halfmove_clock_; }
+    u64 hash() const { return hash_; }
+
+    bool piece_at(u8 square, Piece& piece, Color& color) const;
+    bool square_attacked(u8 square, Color by) const;
+    bool in_check(Color color) const;
+    bool insufficient_material() const;
+
+    void generate_pseudolegal(MoveList& moves) const;
+    void generate_legal(MoveList& moves);
+    void generate(MoveList& moves, Generation mode);
+    UndoState make_move(Move move);
+    void make_move(Move move, StateInfo& state);
+    void unmake_move(Move move, const UndoState& undo);
+    void make_null_move(StateInfo& state);
+    void unmake_null_move(const StateInfo& state);
+
+private:
+    struct LegalContext {
+        u64 checkers = 0;
+        u64 evasion = ~0ULL;
+        u64 pinned = 0;
+        u8 checker_count = 0;
+    };
+
+    // Piece bitboards and occupancies form the hot attack-generation block.
+    eastl::array<eastl::array<u64, 6>, 2> pieces_{};
+    eastl::array<u64, 2> occupancy_{};
+    eastl::array<u8, 2> king_square_{{4, 60}};
+    // 0 means empty; otherwise 1 + piece + 6 * color. O(1) piece lookup.
+    eastl::array<u8, 64> mailbox_{};
+    Color side_to_move_ = Color::White;
+    u8 castling_rights_ = white_king | white_queen | black_king | black_queen;
+    u8 en_passant_ = no_square;
+    u16 halfmove_clock_ = 0;
+    u16 fullmove_number_ = 1;
+    u64 hash_ = 0;
+
+    void add_piece(Color color, Piece piece, u8 square);
+    void remove_piece(Color color, Piece piece, u8 square);
+    Piece piece_on(u8 square, Color color) const;
+    u8 king_square(Color color) const { return king_square_[index(color)]; }
+    u64 compute_hash() const;
+    bool square_attacked(u8 square, Color by, u64 occupied,
+                         u8 ignored_enemy = no_square) const;
+    bool legal_after(Move move, Color side) const;
+    LegalContext legal_context(Color side) const;
+    template<Color Side, Generation Mode>
+    void generate_legal_for(MoveList& moves);
+    template<MoveFlag Flag>
+    void make_move_impl(Move move, StateInfo& state);
+    template<MoveFlag Flag>
+    void unmake_move_impl(Move move, const StateInfo& state);
+    void generate_pawns(MoveList& moves, Color side) const;
+    void generate_leapers(MoveList& moves, Color side, Piece piece) const;
+    void generate_sliders(MoveList& moves, Color side, Piece piece) const;
+    void generate_castling(MoveList& moves, Color side) const;
 };
 
+} // namespace chess
